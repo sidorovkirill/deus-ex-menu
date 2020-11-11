@@ -1,0 +1,86 @@
+import {camera, cameraControls, scene} from "./scene";
+import {calcDistance} from "./utils";
+import renderer from "./renderer";
+import * as THREE from "three";
+
+let buttonIsPushed = false;
+let actualVerticle = null;
+
+const raycaster = new THREE.Raycaster();
+
+function raycast ( e ) {
+    console.log("---------------------");
+    mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+    console.log(e);
+
+    raycaster.setFromCamera( mouse, camera );
+
+    var intersects = raycaster.intersectObjects( scene.children );
+
+    intersects.forEach(intersect => {
+        console.log( intersect );
+        //intersect.face.color.setHex( 0x000000 );
+        if(intersect.object.name === 'field') {
+            const point = intersect.point;
+            const {a, b, c} = intersect.face;
+            const vertices = intersect.object.geometry.vertices;
+            const faceVertices = [a, b, c].map((verticleIndex) => vertices[verticleIndex]);
+            console.log(faceVertices);
+            const distances = faceVertices.map((verticle) => calcDistance(verticle, point));
+            console.log(distances);
+            const minDistance = Math.min(...distances);
+            console.log(minDistance);
+            const actualVerticleIndex = distances.indexOf(minDistance);
+            console.log(actualVerticleIndex);
+            actualVerticle = faceVertices[actualVerticleIndex];
+            console.log(actualVerticle);
+
+            pivot.position.x = actualVerticle.x;
+            pivot.position.y = actualVerticle.y;
+            pivot.position.z = actualVerticle.z;
+        }
+        if(intersect.object.name === 'pivot' && buttonIsPushed) {
+            cameraControls.enabled = false;
+            if(actualVerticle) {
+                const point = intersect.point;
+
+                actualVerticle.x = point.x;
+                actualVerticle.y = point.y;
+                actualVerticle.z = point.z;
+
+                intersect.object.updateMatrixWorld();
+                intersect.object.updateMatrix();
+                intersect.object.geometry.applyMatrix( intersect.object.matrix );
+                intersect.object.matrix.identity();
+
+                intersect.object.geometry.verticesNeedUpdate = true;
+                intersect.object.geometry.elementsNeedUpdate = true;
+                intersect.object.geometry.morphTargetsNeedUpdate = true;
+                intersect.object.geometry.uvsNeedUpdate = true;
+                intersect.object.geometry.normalsNeedUpdate = true;
+                intersect.object.geometry.colorsNeedUpdate = true;
+                intersect.object.geometry.tangentsNeedUpdate = true;
+            }
+        }
+    });
+
+    renderer.render(scene, camera);
+}
+
+function createPivotSphere() {
+    const size = 20;
+    const geometry = new THREE.SphereBufferGeometry( size, 32, 32 );
+    const material = new THREE.MeshLambertMaterial( { color: 0x3fdfcf } );
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = 'pivot';
+    return mesh;
+}
+
+function changeButtonStatus(status) {
+    if(status === false) {
+        cameraControls.enabled = true;
+    }
+    buttonIsPushed = status;
+}
