@@ -18,11 +18,11 @@ const effectController = {
 
 const ambientLight = new THREE.AmbientLight(0xFFFFFF);
 ambientLight.color.setHSL(effectController.hue, effectController.saturation, effectController.lightness * effectController.ka);
-scene.add(ambientLight);
+// scene.add(ambientLight);
 
 const light = new THREE.DirectionalLight(0xFFFFFF, 0.5);
 light.position.set(effectController.lx, effectController.ly, effectController.lz);
 light.color.setHSL(effectController.lhue, effectController.lsaturation, effectController.llightness);
-scene.add(light);
+//scene.add(light);
 
 export {light, ambientLight};

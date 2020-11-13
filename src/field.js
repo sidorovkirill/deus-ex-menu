@@ -3,10 +3,11 @@ import Delaunay from "delaunay-fast";
 import renderer from "./renderer";
 import {camera, scene} from "./scene";
 
-let count = 0;
-const waveLength = 100;
-const waveSpeed = 0.3;
-const waveHeight = 50;
+let waveCount = 0;
+let localCount = 0;
+const waveLength = 50;
+const waveSpeed = 0.1;
+const waveHeight = 100;
 
 export const createVertices = (width, height, deep, verticesLength) => {
     const vertices = [];
@@ -17,10 +18,18 @@ export const createVertices = (width, height, deep, verticesLength) => {
         z = Math.random() * height;
         y = Math.random() * deep;
 
-        vertices.push([Math.ceil(x), Math.ceil(y), Math.ceil(z)]);
+        if(vertices.filter(vert => flatDistance(vert, [x, y, z]) < 150).length === 0) {
+            vertices.push([Math.ceil(x), Math.ceil(y), Math.ceil(z)]);
+        }
     }
 
     return vertices;
+};
+
+export const flatDistance = (a, b) => {
+    const [ax, ay , az] = a;
+    const [bx, by , bz] = b;
+    return Math.sqrt(Math.pow(ax - bx, 2) + Math.pow(az - bz, 2));
 };
 
 export const createField  = (vertices, width, height) => {
@@ -42,12 +51,11 @@ export const createField  = (vertices, width, height) => {
     geometry.translate(- width / 2, 0, - height / 2);
 
 
-    //const material = new THREE.MeshPhongMaterial( { color: 0xffffff} );
-
     // const material = new THREE.MeshLambertMaterial( {
     //     color: 0xffffff,
     //     vertexColors: THREE.FaceColors,
-    //     shininess: 150
+    //     shininess: 10,
+    //     reflectivity: 0.5
     // });
 
     // var uniforms = {};
@@ -55,12 +63,18 @@ export const createField  = (vertices, width, height) => {
     // uniforms.time = {type:'f',value: new Date().getTime()};
     //var material = new THREE.ShaderMaterial({uniforms:uniforms,fragmentShader: shaderCode});
 
-    //const material = new THREE.MeshPhongMaterial( { color: 0xffffff} );
+    // const material = new THREE.MeshPhongMaterial( { color: 0xffffff} );
     // const material = new THREE.MeshLambertMaterial( {
     //     color: 0xffffff,
     //     vertexColors: THREE.FaceColors,
     // });
-    const material = new THREE.MeshStandardMaterial({color: 0xe98300, metalness: 5.0, roughness: 0.5, name: 'red'});
+    const material = new THREE.MeshStandardMaterial({
+        // color: 0xe98300,
+        metalness: 1,
+        roughness: 0.8,
+        //color: 0xffffff,
+        //envMap: scene.background
+    });
 
     const field = new THREE.Mesh( geometry, material);
     field.name = 'field';
@@ -76,10 +90,14 @@ const render = (vertices, field) => {
     vertices.forEach((vertice, i) => {
         const {x, y, z} = field.geometry.vertices[i];
         console.log();
-        field.geometry.vertices[i].y = (Math.sin((x / waveLength + count) * waveSpeed) * waveHeight) + (Math.sin((z / waveLength + count) * waveSpeed) * waveHeight) + vertice[1];
+        field.geometry.vertices[i].y =
+            (Math.sin((x / waveLength + waveCount) * waveSpeed) * waveHeight) + (Math.sin((z / waveLength + waveCount) * waveSpeed) * waveHeight) // global waves
+            + Math.cos((x * z + localCount) * waveSpeed / 3) * vertice[1]; // local points moving by Z axis
+            //+ vertice[1];
     });
     field.geometry.verticesNeedUpdate = true;
     renderer.render(scene, camera);
-    count += 0.1;
+    waveCount += 0.1;
+    localCount += 0.5
 };
 
